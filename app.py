@@ -4,18 +4,27 @@ import mysql.connector
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from werkzeug.security import generate_password_hash, check_password_hash
+from dotenv import load_dotenv
+
+# Load environment variables from .env file if available
+load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = "farm2home_secret_key_2026_secure"
+app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key")
+
+# Ensure static uploads directory exists cross-platform
+UPLOAD_FOLDER = os.path.join(app.root_path, 'static', 'uploads')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # MySQL Connection Configuration (User can edit host, user, password)
 MYSQL_CONFIG = {
-    'host': 'localhost',
-    'user': 'root',
-    'password': '',
-    'database': 'farm2home_db',
+    'host': os.environ.get('DB_HOST', 'localhost'),
+    'user': os.environ.get('DB_USER', 'root'),
+    'password': os.environ.get('DB_PASSWORD', ''),
+    'database': os.environ.get('DB_NAME', 'farm2home_db'),
+    'port': int(os.environ.get('DB_PORT', 3306))
 }
-
 def get_db():
     """
     Database Connection helper:
@@ -732,5 +741,21 @@ def contact():
         return redirect(url_for('contact'))
     return render_template("contact.html")
 
+# -----------------------------------------------------
+# ERROR HANDLERS
+# -----------------------------------------------------
+
+@app.errorhandler(404)
+def page_not_found(e):
+    flash("The requested page could not be found.", "warning")
+    return redirect(url_for('home'))
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    flash("An internal error occurred. Please try again later.", "danger")
+    return redirect(url_for('home'))
+
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    is_debug = os.environ.get("FLASK_DEBUG", "True").lower() in ["true", "1", "t"]
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=is_debug)
