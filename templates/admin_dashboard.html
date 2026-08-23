@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+
+{% block title %}System Admin Dashboard - Farm2Home{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <!-- Header Banner -->
+  <div class="bg-dark text-white p-4 rounded-4 shadow-sm mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <span class="badge bg-danger px-3 py-1 rounded-pill fw-bold mb-2"><i class="bi bi-shield-lock me-1"></i>System Administrator</span>
+        <h3 class="fw-extrabold mb-1">Farm2Home Admin Panel</h3>
+        <p class="text-white-50 mb-0">Platform overview, user moderation, product categories, and system monitoring.</p>
+      </div>
+      <div>
+        <button class="btn btn-success rounded-pill px-4 fw-bold" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+          <i class="bi bi-plus-circle me-1"></i>New Category
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key Statistics Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-2-4">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-primary border-4 text-center">
+        <div class="text-muted small fw-bold uppercase">Buyers</div>
+        <h3 class="fw-extrabold text-primary mb-0 mt-1">{{ total_users }}</h3>
+      </div>
+    </div>
+    <div class="col-md-2-4">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-success border-4 text-center">
+        <div class="text-muted small fw-bold uppercase">Farmers</div>
+        <h3 class="fw-extrabold text-success mb-0 mt-1">{{ total_farmers }}</h3>
+      </div>
+    </div>
+    <div class="col-md-2-4">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-info border-4 text-center">
+        <div class="text-muted small fw-bold uppercase">Products</div>
+        <h3 class="fw-extrabold text-info mb-0 mt-1">{{ total_products }}</h3>
+      </div>
+    </div>
+    <div class="col-md-2-4">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-warning border-4 text-center">
+        <div class="text-muted small fw-bold uppercase">Orders</div>
+        <h3 class="fw-extrabold text-warning mb-0 mt-1">{{ total_orders }}</h3>
+      </div>
+    </div>
+    <div class="col-md-2-4">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-danger border-4 text-center">
+        <div class="text-muted small fw-bold uppercase">Platform Revenue</div>
+        <h3 class="fw-extrabold text-danger mb-0 mt-1">₹{{ total_revenue }}</h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Control Tabs -->
+  <ul class="nav nav-pills mb-4 bg-white p-2 rounded-4 shadow-sm border" id="adminTabs" role="tablist">
+    <li class="nav-item">
+      <button class="nav-link active rounded-3 fw-bold" data-bs-toggle="pill" data-bs-target="#usersTab" type="button">
+        <i class="bi bi-people-fill me-2"></i>Users & Farmers ({{ users|length }})
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link rounded-3 fw-bold" data-bs-toggle="pill" data-bs-target="#categoriesTab" type="button">
+        <i class="bi bi-tags-fill me-2"></i>Categories ({{ categories|length }})
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link rounded-3 fw-bold" data-bs-toggle="pill" data-bs-target="#productsAdminTab" type="button">
+        <i class="bi bi-box-seam me-2"></i>All Products ({{ products|length }})
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link rounded-3 fw-bold" data-bs-toggle="pill" data-bs-target="#ordersAdminTab" type="button">
+        <i class="bi bi-receipt me-2"></i>System Orders ({{ orders|length }})
+      </button>
+    </li>
+  </ul>
+
+  <div class="tab-content" id="adminTabsContent">
+
+    <!-- Users & Farmers Tab -->
+    <div class="tab-pane fade show active" id="usersTab">
+      <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>ID</th>
+                <th>Full Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Phone</th>
+                <th>Status</th>
+                <th class="text-end">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for u in users %}
+              <tr>
+                <td class="fw-bold">#{{ u.id }}</td>
+                <td class="fw-bold text-dark">{{ u.full_name }}</td>
+                <td>{{ u.email }}</td>
+                <td>
+                  {% if u.role == 'admin' %}
+                    <span class="badge bg-danger">ADMIN</span>
+                  {% elif u.role == 'farmer' %}
+                    <span class="badge bg-success">FARMER</span>
+                  {% else %}
+                    <span class="badge bg-primary">BUYER</span>
+                  {% endif %}
+                </td>
+                <td class="small text-muted">{{ u.phone or 'N/A' }}</td>
+                <td>
+                  {% if u.status == 'active' %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">Active</span>
+                  {% else %}
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">Suspended</span>
+                  {% endif %}
+                </td>
+                <td class="text-end">
+                  {% if u.role != 'admin' %}
+                  <form action="/admin/toggle_user_status/{{ u.id }}" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-sm {% if u.status == 'active' %}btn-outline-warning{% else %}btn-outline-success{% endif %} rounded-3">
+                      {% if u.status == 'active' %}Suspend{% else %}Activate{% endif %}
+                    </button>
+                  </form>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Categories Tab -->
+    <div class="tab-pane fade" id="categoriesTab">
+      <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Category</th>
+                <th>Description</th>
+                <th>Products Count</th>
+                <th class="text-end">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in categories %}
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center gap-3">
+                    <img src="{{ c.image_url }}" alt="{{ c.name }}" class="rounded-3" style="width: 50px; height: 50px; object-fit: cover;">
+                    <span class="fw-bold text-dark fs-6">{{ c.name }}</span>
+                  </div>
+                </td>
+                <td class="small text-muted" style="max-width: 300px;">{{ c.description }}</td>
+                <td><span class="badge bg-light text-dark border">{{ c.product_count }} Products</span></td>
+                <td class="text-end">
+                  <form action="/admin/delete_category/{{ c.id }}" method="POST" onsubmit="return confirm('Delete category?');" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-3"><i class="bi bi-trash"></i> Delete</button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Products Tab -->
+    <div class="tab-pane fade" id="productsAdminTab">
+      <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Title</th>
+                <th>Farmer</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Stock</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in products %}
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <img src="{{ p.image_url }}" alt="{{ p.title }}" class="rounded-2" style="width: 40px; height: 40px; object-fit: cover;">
+                    <span class="fw-bold text-dark">{{ p.title }}</span>
+                  </div>
+                </td>
+                <td class="small text-muted">{{ p.farmer_name }}</td>
+                <td><span class="badge bg-light text-dark border">{{ p.category_name }}</span></td>
+                <td class="fw-bold text-success">₹{{ p.price }} / {{ p.unit }}</td>
+                <td>{{ p.stock }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Orders Tab -->
+    <div class="tab-pane fade" id="ordersAdminTab">
+      <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Order #</th>
+                <th>Buyer</th>
+                <th>Total</th>
+                <th>Payment</th>
+                <th>Status</th>
+                <th class="text-end">Update Order Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for o in orders %}
+              <tr>
+                <td class="fw-bold">#{{ o.id }}</td>
+                <td class="fw-bold text-dark">{{ o.buyer_name }}</td>
+                <td class="fw-bold text-success">₹{{ o.total_amount }}</td>
+                <td class="small text-muted">{{ o.payment_method }}</td>
+                <td>
+                  <span class="badge bg-light text-dark border">{{ o.order_status }}</span>
+                </td>
+                <td class="text-end">
+                  <form action="/admin/update_order_status/{{ o.id }}" method="POST" class="d-inline-flex gap-2">
+                    <select name="status" class="form-select form-select-sm rounded-3">
+                      <option value="Pending" {% if o.order_status == 'Pending' %}selected{% endif %}>Pending</option>
+                      <option value="Processing" {% if o.order_status == 'Processing' %}selected{% endif %}>Processing</option>
+                      <option value="Shipped" {% if o.order_status == 'Shipped' %}selected{% endif %}>Shipped</option>
+                      <option value="Delivered" {% if o.order_status == 'Delivered' %}selected{% endif %}>Delivered</option>
+                      <option value="Cancelled" {% if o.order_status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+                    </select>
+                    <button type="submit" class="btn btn-sm btn-dark rounded-3 fw-bold">Update</button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Add Category Modal -->
+<div class="modal fade" id="addCategoryModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0">
+      <div class="modal-header border-bottom">
+        <h5 class="modal-title fw-bold text-success"><i class="bi bi-tag me-2"></i>Add Product Category</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="/admin/add_category" method="POST">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Category Name *</label>
+            <input type="text" name="name" class="form-control" placeholder="e.g. Organic Honey & Spices" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Category Image URL</label>
+            <input type="text" name="image_url" class="form-control" placeholder="https://images.unsplash.com/...">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Description</label>
+            <textarea name="description" class="form-control" rows="3" placeholder="Category brief overview..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer border-top">
+          <button type="button" class="btn btn-light rounded-3" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success rounded-3 fw-bold px-4">Create Category</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

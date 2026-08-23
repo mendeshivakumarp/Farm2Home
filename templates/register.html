@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Create Account - Farm2Home{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-md-7 col-lg-6">
+      <div class="card border-0 shadow-sm rounded-4 p-4 p-sm-5 bg-white">
+        <div class="text-center mb-4">
+          <h3 class="fw-extrabold text-success mb-1">Create Account</h3>
+          <p class="text-muted small">Join Farm2Home as a Buyer or Local Farmer</p>
+        </div>
+
+        <form action="/register" method="POST">
+          <div class="mb-3">
+            <label class="form-label fw-bold small text-muted">Register As *</label>
+            <div class="row g-2">
+              <div class="col-6">
+                <input type="radio" class="btn-check" name="role" id="role_user" value="user" checked>
+                <label class="btn btn-outline-success w-100 py-2 rounded-3 fw-bold" for="role_user">
+                  <i class="bi bi-person-fill me-1"></i>Buyer / Customer
+                </label>
+              </div>
+              <div class="col-6">
+                <input type="radio" class="btn-check" name="role" id="role_farmer" value="farmer">
+                <label class="btn btn-outline-success w-100 py-2 rounded-3 fw-bold" for="role_farmer">
+                  <i class="bi bi-flower1 me-1"></i>Farmer / Producer
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="full_name" class="form-label fw-bold small text-muted">Full Name *</label>
+            <input type="text" id="full_name" name="full_name" class="form-control bg-light" placeholder="e.g. Ramesh Kumar" required>
+          </div>
+
+          <div class="mb-3">
+            <label for="email" class="form-label fw-bold small text-muted">Email Address *</label>
+            <input type="email" id="email" name="email" class="form-control bg-light" placeholder="name@domain.com" required>
+          </div>
+
+          <div class="mb-3">
+            <label for="phone" class="form-label fw-bold small text-muted">Phone Number</label>
+            <input type="tel" id="phone" name="phone" class="form-control bg-light" placeholder="10-digit mobile number">
+          </div>
+
+          <div class="mb-3">
+            <label for="address" class="form-label fw-bold small text-muted">Address / Farm Location</label>
+            <textarea id="address" name="address" class="form-control bg-light" rows="2" placeholder="Full street address or farm location..."></textarea>
+          </div>
+
+          <div class="mb-4">
+            <label for="password" class="form-label fw-bold small text-muted">Password *</label>
+            <input type="password" id="password" name="password" class="form-control bg-light" placeholder="Minimum 6 characters" required>
+          </div>
+
+          <button type="submit" class="btn btn-success btn-lg w-100 rounded-3 fw-bold mb-3 shadow-sm">Complete Registration</button>
+
+          <div class="text-center">
+            <span class="small text-muted">Already have an account? </span>
+            <a href="/login" class="small fw-bold text-success text-decoration-none">Sign In</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

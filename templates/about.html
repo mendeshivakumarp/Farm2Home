@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}About Us - Farm2Home{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white mb-5">
+    <div class="row align-items-center g-4">
+      <div class="col-md-6">
+        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill fw-bold mb-2">Our Mission</span>
+        <h2 class="fw-extrabold text-success mb-3">Connecting Local Farmers Directly With Your Table</h2>
+        <p class="text-secondary leading-relaxed mb-3">
+          Farm2Home was founded with a clear mission: to build a direct bridge between smallholder organic farmers and urban households. Traditional agricultural supply chains force farmers to lose up to 60% of their earnings to intermediaries while consumers pay higher prices for stale produce.
+        </p>
+        <p class="text-secondary leading-relaxed mb-4">
+          With Farm2Home, crops ordered in the morning are harvested fresh at sunrise and delivered straight to your home within hours, guaranteeing maximum flavor, nutrition, and fair revenue for hardworking farming families.
+        </p>
+        <div class="d-flex gap-3">
+          <a href="/products" class="btn btn-success rounded-pill px-4 fw-bold">Explore Our Harvest</a>
+          <a href="/register" class="btn btn-outline-success rounded-pill px-4 fw-bold">Join As A Farmer</a>
+        </div>
+      </div>
+      <div class="col-md-6 text-center">
+        <img src="https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?w=800&auto=format&fit=crop" class="img-fluid rounded-4 shadow-sm" alt="Farmer in field">
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4 text-center">
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+        <div class="bg-success-subtle text-success p-3 rounded-circle d-inline-flex mx-auto mb-3 fs-3"><i class="bi bi-shield-check"></i></div>
+        <h5 class="fw-bold text-dark">100% Chemical-Free</h5>
+        <p class="small text-muted mb-0">We inspect and verify every partner farm to ensure zero artificial pesticides or harmful preservatives.</p>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+        <div class="bg-success-subtle text-success p-3 rounded-circle d-inline-flex mx-auto mb-3 fs-3"><i class="bi bi-currency-exchange"></i></div>
+        <h5 class="fw-bold text-dark">Fair Trade Earnings</h5>
+        <p class="small text-muted mb-0">Farmers retain 100% of their listed price, supporting rural economic growth and sustainable farming.</p>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+        <div class="bg-success-subtle text-success p-3 rounded-circle d-inline-flex mx-auto mb-3 fs-3"><i class="bi bi-truck"></i></div>
+        <h5 class="fw-bold text-dark">Zero-Storage Freshness</h5>
+        <p class="small text-muted mb-0">Produce doesn't sit in cold storages for weeks; it is harvested on-demand upon your order placement.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
