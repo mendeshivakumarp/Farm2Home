@@ -51,9 +51,17 @@
             <textarea id="address" name="address" class="form-control bg-light" rows="2" placeholder="Full street address or farm location..."></textarea>
           </div>
 
-          <div class="mb-4">
+          <div class="mb-3">
             <label for="password" class="form-label fw-bold small text-muted">Password *</label>
-            <input type="password" id="password" name="password" class="form-control bg-light" placeholder="Minimum 6 characters" required>
+            <div class="input-group">
+              <input type="password" id="password" name="password" class="form-control bg-light" placeholder="Minimum 8 characters" minlength="8" autocomplete="new-password" required>
+              <button class="btn btn-light border password-toggle" type="button" data-password-toggle="password" aria-label="Show password"><i class="bi bi-eye"></i></button>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label for="confirm_password" class="form-label fw-bold small text-muted">Confirm Password *</label>
+            <input type="password" id="confirm_password" name="confirm_password" class="form-control bg-light" minlength="8" autocomplete="new-password" required>
           </div>
 
           <button type="submit" class="btn btn-success btn-lg w-100 rounded-3 fw-bold mb-3 shadow-sm">Complete Registration</button>

@@ -10,7 +10,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key")
+app.secret_key = os.environ.get("SECRET_KEY")
+if not app.secret_key:
+    if os.environ.get("FLASK_DEBUG", "True").lower() in ["true", "1", "t"]:
+        app.secret_key = "farm2home-local-development-only"
+    else:
+        raise RuntimeError("SECRET_KEY environment variable is required in production.")
 
 # Ensure static uploads directory exists cross-platform
 UPLOAD_FOLDER = os.path.join(app.root_path, 'static', 'uploads')
@@ -228,6 +233,17 @@ def update_cart_count():
     cart = session.get('cart', {})
     session['cart_count'] = sum(cart.values())
 
+def clean_positive_int(value, field_name, minimum=1, maximum=None):
+    try:
+        result = int(value)
+    except (TypeError, ValueError):
+        return None
+    if result < minimum:
+        return None
+    if maximum is not None and result > maximum:
+        return None
+    return result
+
 # -----------------------------------------------------
 # PUBLIC STOREFRONT ROUTES
 # -----------------------------------------------------
@@ -338,11 +354,25 @@ def cart():
 
 @app.route("/add_to_cart/<int:product_id>", methods=["POST"])
 def add_to_cart(product_id):
-    quantity = int(request.form.get('quantity', 1))
+    product = query_db("SELECT id, title, stock FROM products WHERE id = %s", [product_id], one=True)
+    if not product:
+        flash("Product not found.", "danger")
+        return redirect(url_for('products'))
+
+    quantity = clean_positive_int(request.form.get('quantity', 1), 'quantity')
+    if quantity is None:
+        flash("Please enter a valid quantity.", "danger")
+        return redirect(request.referrer or url_for('products'))
+
     cart = session.get('cart', {})
     str_pid = str(product_id)
+    current_quantity = clean_positive_int(cart.get(str_pid, 0), 'quantity', minimum=0) or 0
+    new_quantity = current_quantity + quantity
+    if new_quantity > int(product['stock']):
+        flash(f"Only {product['stock']} units of {product['title']} are available.", "warning")
+        return redirect(request.referrer or url_for('products'))
 
-    cart[str_pid] = cart.get(str_pid, 0) + quantity
+    cart[str_pid] = new_quantity
     session['cart'] = cart
     update_cart_count()
     flash("Item successfully added to your cart!", "success")
@@ -354,9 +384,14 @@ def update_cart():
     for key, value in request.form.items():
         if key.startswith('qty_'):
             pid = key.replace('qty_', '')
-            qty = int(value)
-            if qty > 0:
+            product = query_db("SELECT stock FROM products WHERE id = %s", [pid], one=True)
+            if not product:
+                continue
+            qty = clean_positive_int(value, 'quantity', maximum=int(product['stock']))
+            if qty is not None:
                 cart[pid] = qty
+            elif value:
+                flash("One or more quantities exceeded available stock and were ignored.", "warning")
     session['cart'] = cart
     update_cart_count()
     flash("Cart updated.", "info")
@@ -403,12 +438,16 @@ def checkout():
     for pid_str, qty in cart_dict.items():
         if pid_str in prod_map:
             p = prod_map[pid_str]
+            quantity = clean_positive_int(qty, 'quantity', maximum=int(p['stock']))
+            if quantity is None:
+                flash("Your cart contains an unavailable or invalid quantity. Please update it.", "danger")
+                return redirect(url_for('cart'))
             price = float(p['price'])
-            grand_total += price * qty
+            grand_total += price * quantity
             items_to_insert.append({
                 'product_id': p['id'],
                 'farmer_id': p['farmer_id'],
-                'quantity': qty,
+                'quantity': quantity,
                 'price': price
             })
 
@@ -424,6 +463,10 @@ def checkout():
             INSERT INTO order_items (order_id, product_id, farmer_id, quantity, price, status)
             VALUES (%s, %s, %s, %s, %s, 'Pending')
         """, [order_id, item['product_id'], item['farmer_id'], item['quantity'], item['price']], commit=True)
+        query_db("""
+            UPDATE products SET stock = stock - %s
+            WHERE id = %s AND stock >= %s
+        """, [item['quantity'], item['product_id'], item['quantity']], commit=True)
 
     # Clear Cart
     session['cart'] = {}
@@ -452,6 +495,7 @@ def login():
             session['user_name'] = user['full_name']
             session['user_email'] = user['email']
             session['user_role'] = user['role']
+            session.permanent = True
 
             flash(f"Welcome back, {user['full_name']}!", "success")
             if user['role'] == 'farmer':
@@ -473,9 +517,19 @@ def register():
         phone = request.form.get('phone', '').strip()
         address = request.form.get('address', '').strip()
         role = request.form.get('role', 'user')
+        confirm_password = request.form.get('confirm_password', '')
+
+        if role not in ('user', 'farmer'):
+            role = 'user'
 
         if not full_name or not email or not password:
             flash("Please fill in all required fields.", "danger")
+            return redirect(url_for('register'))
+        if len(password) < 8:
+            flash("Password must be at least 8 characters.", "danger")
+            return redirect(url_for('register'))
+        if password != confirm_password:
+            flash("Password and confirm password do not match.", "danger")
             return redirect(url_for('register'))
 
         existing_user = query_db("SELECT id FROM users WHERE email = %s", [email], one=True)
@@ -557,6 +611,10 @@ def farmer_add_product():
     description = request.form.get('description', '').strip()
     image_url = request.form.get('image_url', '').strip()
 
+    if not title or category_id is None or price is None or price <= 0 or stock is None or stock < 0:
+        flash("Please provide a title, valid category, positive price, and valid stock.", "danger")
+        return redirect(url_for('farmer_dashboard'))
+
     if not image_url:
         image_url = 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&auto=format&fit=crop'
 
@@ -579,6 +637,10 @@ def farmer_edit_product(product_id):
     description = request.form.get('description', '').strip()
     image_url = request.form.get('image_url', '').strip()
 
+    if not title or category_id is None or price is None or price <= 0 or stock is None or stock < 0:
+        flash("Please provide valid product details.", "danger")
+        return redirect(url_for('farmer_dashboard'))
+
     query_db("""
         UPDATE products 
         SET title = %s, category_id = %s, price = %s, unit = %s, stock = %s, description = %s, image_url = %s
@@ -599,6 +661,9 @@ def farmer_delete_product(product_id):
 @role_required('farmer')
 def farmer_update_item_status(item_id):
     new_status = request.form.get('status')
+    if new_status not in ('Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'):
+        flash("Invalid order status.", "danger")
+        return redirect(url_for('farmer_dashboard'))
     query_db("UPDATE order_items SET status = %s WHERE id = %s AND farmer_id = %s", [new_status, item_id, session['user_id']], commit=True)
     flash("Order item status updated.", "success")
     return redirect(url_for('farmer_dashboard'))
@@ -693,6 +758,10 @@ def admin_add_category():
     description = request.form.get('description', '').strip()
     image_url = request.form.get('image_url', '').strip()
 
+    if not name:
+        flash("Category name is required.", "danger")
+        return redirect(url_for('admin_dashboard'))
+
     if not image_url:
         image_url = 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&auto=format&fit=crop'
 
@@ -703,6 +772,10 @@ def admin_add_category():
 @app.route("/admin/delete_category/<int:cat_id>", methods=["POST"])
 @role_required('admin')
 def admin_delete_category(cat_id):
+    in_use = query_db("SELECT COUNT(*) as count FROM products WHERE category_id = %s", [cat_id], one=True)
+    if in_use and in_use['count'] > 0:
+        flash("This category cannot be deleted while it contains products.", "danger")
+        return redirect(url_for('admin_dashboard'))
     query_db("DELETE FROM categories WHERE id = %s", [cat_id], commit=True)
     flash("Category removed.", "info")
     return redirect(url_for('admin_dashboard'))
@@ -711,6 +784,9 @@ def admin_delete_category(cat_id):
 @role_required('admin')
 def admin_update_order_status(order_id):
     new_status = request.form.get('status')
+    if new_status not in ('Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'):
+        flash("Invalid order status.", "danger")
+        return redirect(url_for('admin_dashboard'))
     query_db("UPDATE orders SET order_status = %s WHERE id = %s", [new_status, order_id], commit=True)
     query_db("UPDATE order_items SET status = %s WHERE order_id = %s", [new_status, order_id], commit=True)
     flash(f"Order #{order_id} status updated to {new_status}.", "success")
@@ -731,6 +807,10 @@ def contact():
         email = request.form.get('email', '').strip()
         subject = request.form.get('subject', '').strip()
         message = request.form.get('message', '').strip()
+
+        if not name or not email or not message:
+            flash("Please provide your name, email address, and message.", "danger")
+            return redirect(url_for('contact'))
 
         query_db("""
             INSERT INTO contact_messages (name, email, subject, message)
